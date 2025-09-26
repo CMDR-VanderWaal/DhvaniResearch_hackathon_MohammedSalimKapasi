@@ -1,0 +1,46 @@
+The algorithm finds defects by measuring how much the ring shape deviates from a perfect circle.
+
+Part - 1: Find the Defect
+Phase A: Preparing the Image (Segmentation)
+- Image Prep: Convert the image to black and white (binarization). The object becomes solid white, the background black.
+- Find Boundaries: Use a computer vision function to identify all edges (contours). Crucially, the algorithm distinguishes between the Outer Boundary (the outside rim) and the Inner Boundary (the hole).
+
+Phase B: Measuring the Ring (Radial Analysis):
+- Find True Center (Centroid): The algorithm calculates the geometric center of the ring. This is the origin (CX, CY) for all measurements. This makes the algorithm immune to the ring being moved (translated) in the image.
+- Measure Radii: For thousands of points along the ring's boundaries, the distance to the True Center is measured.
+
+-Calculate Key Numbers:
+>> R_out_avg, R_in_avg: The average expected radius for each boundary.
+>> R_out, R_out_min: The largest and smallest radii on the outer edge.
+>> R_in, R_in_max: The smallest and largest radii on the inner edge.
+
+Phase C: Dynamic Tolerance (Defect Determination)
+- Dynamic Thresholding (Robust to Diameter): Instead of using a fixed number of pixels (e.g., "5 pixels of error allowed"), the tolerance is set as a percentage of the overall size of the ring.
+> The formula is: Tolerance = R_out_avg multiplied by the Threshold Percentage.
+ -- If the ring is large, the allowed error (Tolerance) is large. If the ring is small, the allowed error is small. This maintains a consistent quality standard.
+- Detection Check: The algorithm calculates the radial deviation (difference between the max/min radius and the average radius) for all four boundary conditions. If any single deviation is greater than the calculated Tolerance, a defect is recorded.
+
+Part - 2: Localizing the Defect 
+
+Localization is a natural byproduct of the radial analysis.
+
+Identify the Outlier: Every defect is tied to a specific point on the contour that registered the largest or smallest radial distance (R_out, R_out_min, R_in, R_in_max).
+
+Report Coordinates: The algorithm can easily find the exact coordinates (x, y) of this "Outlier Point" within the contour array. This allows the system to visually highlight the defect's precise location on the image.
+
+
+Part - 3:  Classifying the Defect 
+
+The classification is determined by the direction of the detected deviation relative to the average size, matching the user's definitions of Protrusion (FLASH) and Recession (CUT).
+
+FLASH (Protrusion / Material sticks out):
+
+Outer: R_out is much larger than R_out_avg. (Excess material on the rim.)
+
+Inner: R_in is much smaller than R_in_avg. (Excess material pushed into the hole.)
+
+CUT (Recession / Material missing):
+
+Outer: R_out_min is much smaller than R_out_avg. (Dent or missing piece on the rim.)
+
+Inner: R_in_max is much larger than R_in_avg. (Material missing from the inside edge, widening the hole.)
